@@ -5,6 +5,9 @@ namespace Illuminate\Foundation\Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Foundation\Auth\Session;
 
 trait AuthenticatesUsers
 {
@@ -16,7 +19,7 @@ trait AuthenticatesUsers
      * @return \Illuminate\Http\Response
      */
     public function showLoginForm()
-    {
+    {        
         return view('auth.login');
     }
 
@@ -27,7 +30,7 @@ trait AuthenticatesUsers
      * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\Response|\Illuminate\Http\JsonResponse
      */
     public function login(Request $request)
-    {
+    {               
         $this->validateLogin($request);
 
         // If the class is using the ThrottlesLogins trait, we can automatically throttle
@@ -38,8 +41,11 @@ trait AuthenticatesUsers
 
             return $this->sendLockoutResponse($request);
         }
-
-        if ($this->attemptLogin($request)) {
+             
+        if ($this->attemptLogin($request)) {            
+            //$request->session()->put('admin_login', '1');  
+            session_start();
+            $_SESSION['admin_login'] = '1';                  
             return $this->sendLoginResponse($request);
         }
 
@@ -72,7 +78,7 @@ trait AuthenticatesUsers
      * @return bool
      */
     protected function attemptLogin(Request $request)
-    {
+    {       
         return $this->guard()->attempt(
             $this->credentials($request), $request->filled('remember')
         );
@@ -102,7 +108,10 @@ trait AuthenticatesUsers
         $this->clearLoginAttempts($request);
 
         return $this->authenticated($request, $this->guard()->user())
-                ?: redirect()->intended($this->redirectPath());
+                ? redirect('admin/listing') : redirect()->intended($this->redirectPath());
+
+        // return $this->authenticated($request, $this->guard()->user())
+        //         ? redirect('admin/listing') : redirect('admin/dashboard');                
     }
 
     /**
@@ -113,8 +122,8 @@ trait AuthenticatesUsers
      * @return mixed
      */
     protected function authenticated(Request $request, $user)
-    {
-        //
+    {        
+        return redirect('admin/listing');               
     }
 
     /**
@@ -151,10 +160,11 @@ trait AuthenticatesUsers
     public function logout(Request $request)
     {
         $this->guard()->logout();
-
+        session_start();
+        unset($_SESSION['admin_login']);        
         $request->session()->invalidate();
-
-        return redirect('/');
+        
+        return redirect('/admin');
     }
 
     /**
@@ -166,4 +176,6 @@ trait AuthenticatesUsers
     {
         return Auth::guard();
     }
+    
 }
+
